@@ -8,7 +8,7 @@ inputs:
     default: 'latest'
   cabal-version:
     required: false
-    description: 'Version of Cabal to use. If set to "latest", it will always get the latest stable version.'
+    description: 'Version of Cabal to use. If set to "latest", it will always get the latest stable version. If set to "head", it will always get the latest build of cabal.'
     default: 'latest'
   stack-version:
     required: false
@@ -60,5 +60,5 @@ outputs:
   stack-root:
     description: 'The path to the stack root (equal to the STACK_ROOT environment variable if it is set; otherwise an OS-specific default)'
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'

@@ -11,176 +11,12 @@ This action sets up a Haskell environment for use in actions by:
 The GitHub runners come with [pre-installed versions of GHC and Cabal](https://github.com/actions/runner-images).
 Those will be used whenever possible.
 For all other versions, this action utilizes
-[`ppa:hvr/ghc`](https://launchpad.net/~hvr/+archive/ubuntu/ghc),
 [`ghcup`](https://github.com/haskell/ghcup-hs), and
 [`chocolatey`](https://chocolatey.org/packages/ghc).
 
 ## Usage
 
-See [action.yml](action.yml)
-
-### Minimal
-
-```yaml
-on: [push]
-name: build
-jobs:
-  runhaskell:
-    name: Hello World
-    runs-on: ubuntu-latest # or macOS-latest, or windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: haskell-actions/setup@v2
-      - run: runhaskell Hello.hs
-```
-
-### Basic
-
-```yaml
-on: [push]
-name: build
-jobs:
-  runhaskell:
-    name: Hello World
-    runs-on: ubuntu-latest # or macOS-latest, or windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: haskell-actions/setup@v2
-        with:
-          ghc-version: '8.8' # Resolves to the latest point release of GHC 8.8
-          cabal-version: '3.0.0.0' # Exact version of Cabal
-      - run: runhaskell Hello.hs
-```
-
-### Basic with Stack
-
-```yaml
-on: [push]
-name: build
-jobs:
-  runhaskell:
-    name: Hello World
-    runs-on: ubuntu-latest # or macOS-latest, or windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: haskell-actions/setup@v2
-        with:
-          ghc-version: '8.8.4' # Exact version of ghc to use
-          # cabal-version: 'latest'. Omitted, but defaults to 'latest'
-          enable-stack: true
-          stack-version: 'latest'
-      - run: runhaskell Hello.hs
-```
-
-### Matrix Testing
-
-```yaml
-on: [push]
-name: build
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        ghc: ['8.6.5', '8.8.4']
-        cabal: ['2.4.1.0', '3.0.0.0']
-        os: [ubuntu-latest, macOS-latest, windows-latest]
-        exclude:
-          # GHC 8.8+ only works with cabal v3+
-          - ghc: 8.8.4
-            cabal: 2.4.1.0
-    name: Haskell GHC ${{ matrix.ghc }} sample
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Haskell
-        uses: haskell-actions/setup@v2
-        with:
-          ghc-version: ${{ matrix.ghc }}
-          cabal-version: ${{ matrix.cabal }}
-      - run: runhaskell Hello.hs
-```
-
-### Model cabal workflow with caching
-
-```yaml
-name: build
-on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    name: GHC ${{ matrix.ghc-version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        ghc-version: ['9.6', '9.4', '9.2', '9.0', '8.10']
-
-        include:
-          - os: windows-latest
-            ghc-version: '9.6'
-          - os: macos-latest
-            ghc-version: '9.6'
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up GHC ${{ matrix.ghc-version }}
-        uses: haskell-actions/setup@v2
-        id: setup
-        with:
-          ghc-version: ${{ matrix.ghc-version }}
-          # Defaults, added for clarity:
-          cabal-version: 'latest'
-          cabal-update: true
-
-      - name: Configure the build
-        run: |
-          cabal configure --enable-tests --enable-benchmarks --disable-documentation
-          cabal build --dry-run
-        # The last step generates dist-newstyle/cache/plan.json for the cache key.
-
-      - name: Restore cached dependencies
-        uses: actions/cache/restore@v3
-        id: cache
-        env:
-          key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{ steps.setup.outputs.cabal-version }}
-        with:
-          path: ${{ steps.setup.outputs.cabal-store }}
-          key: ${{ env.key }}-plan-${{ hashFiles('**/plan.json') }}
-          restore-keys: ${{ env.key }}-
-
-      - name: Install dependencies
-        run: cabal build all --only-dependencies
-
-      # Cache dependencies already here, so that we do not have to rebuild them should the subsequent steps fail.
-      - name: Save cached dependencies
-        uses: actions/cache/save@v3
-        # Caches are immutable, trying to save with the same key would error.
-        if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
-        with:
-          path: ${{ steps.setup.outputs.cabal-store }}
-          key: ${{ steps.cache.outputs.cache-primary-key }}
-
-      - name: Build
-        run: cabal build all
-
-      - name: Run tests
-        run: cabal test all
-
-      - name: Check cabal file
-        run: cabal check
-
-      - name: Build documentation
-        run: cabal haddock all
-```
+See [action.yml](action.yml) and [docs/examples.md](docs/examples.md).
 
 ## Inputs
 
@@ -194,7 +30,7 @@ jobs:
 | `stack-setup-ghc`       | If set, `enable-stack` must be set. Runs stack setup to install the specified GHC. (Note: setting this does _not_ imply `stack-no-global`.) | "boolean" | false/unset |
 | `disable-matcher`       | If set, disables match messages from GHC as GitHub CI annotations.                                                                          | "boolean" | false/unset |
 | `cabal-update`          | If set to `false`, skip `cabal update` step.                                                                                                | `boolean` | `true`      |
-| `ghcup-release-channel` | If set, add a [release channel](https://www.haskell.org/ghcup/guide/#pre-release-channels) to ghcup.                                        | `URL`     | none        |
+| `ghcup-release-channel` | If set, add a [release channel](https://www.haskell.org/ghcup/guide/#metadata) to ghcup.                                                    | `URL`     | none        |
 
 Note: "boolean" types are set/unset, not true/false.
 That is, setting any "boolean" to a value other than the empty string (`""`) will be considered true/set.
@@ -230,20 +66,39 @@ This list is replicated (hopefully correctly) below.
 
 Versions specified by the inputs, e.g. `ghc-version`, are resolved against this list,
 by taking the first entry from the list if `latest` is requested,
-or the first entry that is a (string-)extension of the requested version otherwise.
-E.g., `8.10` will be resolved to `8.10.7`, and so will `8.10.`, `8.` and `8`
-(and incorrectly, [even `8.1`](github.com/haskell/actions/issues/248)).
+or the first entry that matches exactly,
+or otherwise the first entry that is a (string-)extension of the requested version extended by a `.`.
+E.g., `8.10` will be resolved to `8.10.7`, and so will `8`.
 
 **GHC:**
 
+- `latest-nightly` (requires the resp. `ghcup-release-channel`, e.g. `https://ghc.gitlab.haskell.org/ghcup-metadata/ghcup-nightlies-0.0.7.yaml`)
 - `latest` (default)
-- `9.6.1` `9.6`
-- `9.4.5` `9.4`
+- `9.12.2` `9.12`
+- `9.12.1`
+- `9.10.2` `9.10`
+- `9.10.3`
+- `9.10.1`
+- `9.8.4` `9.8`
+- `9.8.2`
+- `9.8.1`
+- `9.6.7` `9.6`
+- `9.6.6`
+- `9.6.5`
+- `9.6.4`
+- `9.6.3`
+- `9.6.2`
+- `9.6.1`
+- `9.4.8` `9.4`
+- `9.4.7`
+- `9.4.6`
+- `9.4.5`
 - `9.4.4`
 - `9.4.3`
 - `9.4.2`
 - `9.4.1`
-- `9.2.7` `9.2`
+- `9.2.8` `9.2`
+- `9.2.7`
 - `9.2.6`
 - `9.2.5`
 - `9.2.4`
@@ -274,28 +129,39 @@ E.g., `8.10` will be resolved to `8.10.7`, and so will `8.10.`, `8.` and `8`
 - `8.4.1`
 - `8.2.2` `8.2`
 - `8.0.2` `8.0`
-- `7.10.3` `7.10` (not on `ubuntu-22.04` or up)
 
 Suggestion: Try to support at least the three latest major versions of GHC.
 
 **Cabal:**
 
+- `head` (the [cabal-head](https://github.com/haskell/cabal/releases/tag/cabal-head) release of the most recent build of the `master` branch)
 - `latest` (default, recommended)
-- `3.10.1.0` `3.10`
-- `3.8.1.0` `3.8`
-- `3.6.2.0` `3.6`
-- `3.6.0.0`
-- `3.4.1.0` `3.4`
-- `3.4.0.0`
-- `3.2.0.0` `3.2`
-- `3.0.0.0` `3.0`
-- `2.4.1.0` `2.4`
+- `3.16.0.0` `3.16`
+- `3.14.2.0` `3.14`
+- `3.14.1.1`
+- `3.14.1.0`
+- `3.12.1.0` `3.12`
+- `3.10.3.0` `3.10`
+- `3.10.2.1`
+- `3.10.2.0`
+
+Older versions of `cabal` are not supported due to vulnerability [HSEC-2023-0015](https://github.com/haskell/security-advisories/blob/cea5781acfc2adb9bc02486497d782072c613bb6/advisories/hackage/cabal-install/HSEC-2023-0015.md).
 
 Recommendation: Use the latest available version if possible.
 
 **Stack:** (with `enable-stack: true`)
 
 - `latest` (default, recommended)
+- `3.7.1` `3.7`
+- `3.5.1` `3.5`
+- `3.3.1` `3.3`
+- `3.1.1` `3.1`
+- `2.15.7` `2.15`
+- `2.15.5`
+- `2.15.3`
+- `2.15.1`
+- `2.13.1` `2.13`
+- `2.11.1` `2.11`
 - `2.9.3` `2.9`
 - `2.9.1`
 - `2.7.5` `2.7`
