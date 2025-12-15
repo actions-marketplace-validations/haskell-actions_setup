@@ -22,10 +22,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: package-lock.json
       - run: npm ci --prefer-offline --no-audit --progress=false
@@ -88,21 +88,21 @@ jobs:
 
         include:
 
-          # Future macos
+          # Other macos
 
-          - os: macos-15
+          - os: macos-15-intel
+            plan:
+              ghc:   latest
+              cabal: latest
+              cabal_update: "true"
+
+          - os: macos-14
             plan:
               ghc:   latest
               cabal: latest
               cabal_update: "true"
 
           # Some previously recommended releases of ghc with supported cabal
-
-          - os: macos-13
-              # GHC 9.0 does not work on macos-14 (LLVM problem #77)
-            plan:
-              ghc:   "9.0"
-              cabal: "3.10"
 
           - os:  ubuntu-latest
             plan:
@@ -159,7 +159,7 @@ jobs:
               cabal: "latest"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: ./
         id: setup
@@ -250,7 +250,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: ./
         id: setup
         env:
@@ -274,7 +274,7 @@ jobs:
           # test latest and recommended version of stack
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: ./
         id: setup
